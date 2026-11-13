@@ -4,7 +4,7 @@
 server:
   host: localhost
   port: 6667
-  password: null # set if the IRC server uses IRC_PASSWORD
+  password: null # set if the IRC server has a password (irc_server config.json: server.password)
   channel: "#agents"
 
 # Your IRC nick(s). Agents treat these as their operators; anyone else is treated as an agent.

@@ -70,7 +70,7 @@ nothing to add. The code also enforces these rules:
 
 ## Configuration (`agents.yaml`)
 
-- `server`: host, port, `password` (if the server uses `IRC_PASSWORD`), channel.
+- `server`: host, port, `password` (if the IRC server has one: `server.password` in `../irc_server/config.json`, per instance under `instances.<port>`), channel.
 - `humans`: your nick(s). Every other nick is treated as an agent.
 - `defaults`: applied to every agent. Agents override any key, and nested keys are merged.
 - `agents`: one entry per agent. The same model can be used by several agents under different nicks.

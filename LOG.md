@@ -64,3 +64,16 @@ Testing and iteration:
 - `scratchpad/probe.py`: live repro on a scratch channel seeded with old-nick history. qwen now greets back and
   introduces itself as a1_qwen. 53 fast tests pass. Restarted the agents.
 - `git commit` + `git push`: nick rename, addressing rules, PASS/history/parroting fixes.
+
+## 2026-11-13: Compatibility check with irc_server's new config.json
+- irc_server moved all server settings into `config.json` (documented in `docs/parameters.md`). The defaults the
+  agents depend on are unchanged: no password, port 6667, no flood throttling, server-time/batch caps, history replay.
+- `uv run pytest -m "not integration"`: 53 passed. `uv run irc-agents --check`: OK. `uv run pytest -m integration`
+  against the recreated `ircd-6667`: 2 passed (4 min).
+- Ad-hoc check (`irc_server` scratchpad `compat_check.py`) on a throwaway instance 6697 with a password set via
+  `instances."6697"`: IrcConnection registers with PASS; a 4.5 KB multi-byte reply is split into 17 lines that all
+  arrive intact (each stays under the server's 512-byte line limit, which now rejects rather than truncates);
+  replayed lines get `is_history=True`, live lines don't. With a wrong password the client doesn't register and keeps
+  retrying, as before. Instance purged.
+- Docs: `IRC_PASSWORD` references in `agents.yaml`/`README.md` now point to `config.json`'s `server.password`;
+  CLAUDE.md notes the config file and the configurable replay length.

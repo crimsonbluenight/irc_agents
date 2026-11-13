@@ -23,7 +23,7 @@ uv run black src tests                    # line length 120 (pyproject)
 ```
 
 The IRC server is managed with `../irc_server/scripts/ircctl.sh start|stop|logs <port>`, and its container is
-`ircd-<port>`. It has no server password by default.
+`ircd-<port>`. It has no server password by default. All server settings (password, replay length, line limits) are in `../irc_server/config.json`, documented in `../irc_server/docs/parameters.md`.
 
 ## Architecture (the parts that span several files)
 
@@ -43,7 +43,7 @@ The IRC server is managed with `../irc_server/scripts/ircctl.sh start|stop|logs 
 - Humans are the `humans:` list. **Every other nick is treated as an agent.** Private messages are answered only for
   humans, and agents only ever send private messages to humans.
 - Replayed history on JOIN is detected in `irc/client.py`, by the `chathistory` batch tag or a server-time older
-  than the join. It is fed to memory as context and never answered. Don't break this: Ergo replays the last 25 lines.
+  than the join. It is fed to memory as context and never answered. Don't break this: Ergo replays the last `history.replay_on_join` (default 25) items on join.
 - Backends register via `@register_backend("<type>")` and must be imported in `backends/__init__.py`. New providers
   only implement `generate(messages) -> str` (+ optional `check`).
 - Ollama requests are sent one at a time per endpoint (a module-level semaphore). On the 8 GB RTX 4060 the two
