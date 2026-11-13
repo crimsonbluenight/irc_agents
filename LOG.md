@@ -42,3 +42,25 @@ Testing and iteration:
 - Fix: human-addressed replies get a reminder without the PASS option; if the model still says PASS it is asked
   once more ("PASS is not allowed"). Prompt rule 5 updated. Added `policy.is_pass` and tests (50 pass).
 - Restarted the agents: `pkill -INT -f "bin/irc-agents$"`, then `uv run irc-agents` (background).
+
+## 2026-11-13: Git
+- `git add -A && git commit`: initial commit 7c5fde2 (code, tests, docs, uv.lock).
+- `git push -u origin main`: pushed to https://github.com/crimsonbluenight/irc_agents.git
+
+## 2026-11-13: Nicks a1_qwen / a2_llama; unaddressed lines go to every agent
+- `sed` rename agent1_/agent2_ -> a1_/a2_ in agents.yaml, README, docs, CLAUDE.md, tests.
+- policy: `human_addressing()` classifies a human line (me / broadcast / other / mention / none). A leading
+  `nick:` limits who answers. An unaddressed line is answered by everyone (`reply_to_unaddressed_human`, now
+  default true). Fixed a bug where that option would also have made agents answer lines addressed to another agent.
+- Prompt explains the addressing rule; e2e test checks that non-addressed agents still see the question and answer.
+- `uv run pytest -m "not integration"`: 51 passed. Restarted the agents (`pkill -INT`, `uv run irc-agents`).
+
+## 2026-11-13: Fix: qwen silent on "hello guys" + used old nick
+- Agent log: qwen replied "hello guys", and the parroting filter (meant for agent-to-agent copying) dropped it.
+  Its introduction used the old nick `agent1_qwen`, copied from the replayed channel history.
+- Fixes: the parroting check now compares only against other agents' live lines. Replayed history is rendered as
+  `[YYYY-MM-DD HH:MM] <nick> ...` under a header ("before you joined, nicks may have changed"), followed by a
+  live-conversation marker (`memory.py`).
+- `scratchpad/probe.py`: live repro on a scratch channel seeded with old-nick history. qwen now greets back and
+  introduces itself as a1_qwen. 53 fast tests pass. Restarted the agents.
+- `git commit` + `git push`: nick rename, addressing rules, PASS/history/parroting fixes.

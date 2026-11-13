@@ -1,9 +1,10 @@
 """Conversation rules, enforced in code so agents cannot loop forever or talk privately to each other.
 
 Rules:
-* Human in the channel -> an agent replies only when addressed: ``nick: ...``, ``nick1, nick2: ...``, ``all: ...``,
-  ``@nick``, or mentioned anywhere in a line that is not addressed to someone else
-  (unless ``reply_to_unaddressed_human``).
+* Human in the channel -> a line starting with nicks (``nick: ...``, ``nick1, nick2: ...``, ``@nick``) is answered
+  only by those agents; ``all:`` / ``everyone:`` / ``agents:`` or a line without an address is answered by every
+  agent (``reply_to_unaddressed_human``, default on; when off, only addressed/mentioned agents answer).
+  Every agent still reads every line, so all of them see the question and the answers.
 * Agent in the channel -> another agent replies only when explicitly addressed at the *start* of the line
   (``nick: ...``) and the agent-turn budget is not used up. ``all:`` from an agent does not trigger anyone.
 * Turn budget: at most ``max_agent_turns`` agent turns (a multi-line message is one turn) in the channel since the last human line. A human line
@@ -110,19 +111,22 @@ class ConversationPolicy:
         self._last_speaker = _norm(sender)
         self._last_line_at = now
 
-    def is_addressed(self, text: str, by_human: bool) -> bool:
+    def human_addressing(self, text: str) -> str:
+        """How a human line relates to this agent: "me", "broadcast", "other" (addressed to someone else),
+        "mention" (no address, but our nick appears) or "none"."""
         names = leading_addressees(text)
-        me = _norm(self.nick)
-        if me in names:
-            return True
-        if not by_human:
-            return False
-        if names and any(n in BROADCAST_NAMES for n in names):
-            return True
-        # A line that starts with someone else's nick is for them, even if it mentions us ("a1: ask a2 about X").
-        if names and any(n in self.known_speakers for n in names):
-            return False
-        return mentions(text, self.nick)
+        if _norm(self.nick) in names:
+            return "me"
+        if any(n in BROADCAST_NAMES for n in names):
+            return "broadcast"
+        # A line starting with a known nick is for that nick only, even if it mentions us ("a1: ask a2 about X").
+        if any(n in self.known_speakers for n in names):
+            return "other"
+        return "mention" if mentions(text, self.nick) else "none"
+
+    def is_addressed_by_agent(self, text: str) -> bool:
+        """Agents trigger each other only by an explicit leading ``nick:`` (never by all: or mentions)."""
+        return _norm(self.nick) in leading_addressees(text)
 
     def budget_left(self) -> int:
         return max(0, self.config.max_agent_turns - self.agent_streak)
@@ -131,12 +135,13 @@ class ConversationPolicy:
         if _norm(sender) == _norm(self.nick):
             return Decision(False, "own message")
         if self.is_human(sender):
-            if self.is_addressed(text, by_human=True):
-                return Decision(True, "addressed by human", human_triggered=True)
-            if self.config.reply_to_unaddressed_human:
-                return Decision(True, "human line (reply_to_unaddressed_human)", human_triggered=True)
-            return Decision(False, "human line not addressed to me")
-        if not self.is_addressed(text, by_human=False):
+            how = self.human_addressing(text)
+            if how in ("me", "broadcast", "mention"):
+                return Decision(True, f"human line ({how})", human_triggered=True)
+            if how == "none" and self.config.reply_to_unaddressed_human:
+                return Decision(True, "unaddressed human line: everyone answers", human_triggered=True)
+            return Decision(False, "human line addressed to someone else" if how == "other" else "not addressed")
+        if not self.is_addressed_by_agent(text):
             return Decision(False, "agent line not addressed to me")
         if self.budget_left() <= 0:
             return Decision(False, f"agent-turn budget used up ({self.config.max_agent_turns}); waiting for a human")
@@ -162,7 +167,7 @@ class ConversationPolicy:
 
         ``recent_lines``: other people's recent lines in this conversation; a reply that parrots one is dropped."""
         text = (text or "").strip()
-        # Models sometimes prefix their own name / IRC formatting: "<agent1_qwen> ...", "agent1_qwen: ..."
+        # Models sometimes prefix their own name / IRC formatting: "<a1_qwen> ...", "a1_qwen: ..."
         own = re.escape(self.nick)
         text = re.sub(rf"^\s*(?:<{own}>|\[{own}\]|\*\*{own}\*\*:?|{own}:)\s*", "", text, flags=re.IGNORECASE).strip()
         if not text or _PASS_RE.match(text):

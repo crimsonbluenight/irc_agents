@@ -110,7 +110,10 @@ def last_user_text(messages: Sequence[ChatMessage]) -> str:
 
 
 async def test_addressing_all_and_single(h, ircd):
-    await h.start_agents({"a1": lambda m: "a1 re: " + last_user_text(m), "a2": lambda m: "a2 re: " + last_user_text(m)})
+    def echo(name):
+        return lambda m: f"{name} re: " + last_user_text(m).splitlines()[-1]
+
+    a1, a2 = await h.start_agents({"a1": echo("a1"), "a2": echo("a2")})
     human, _ = await h.connect("jakub")
 
     await human.privmsg(CHAN, "all: hello")
@@ -122,10 +125,16 @@ async def test_addressing_all_and_single(h, ircd):
 
     await human.privmsg(CHAN, "a2: only you")
     await until(lambda: len(ircd.messages(sender="a2")) == 2)
-    await human.privmsg(CHAN, "nobody addressed")
     await asyncio.sleep(0.3)
-    assert len(ircd.messages(sender="a1")) == 1 and len(ircd.messages(sender="a2")) == 2
-    assert ircd.messages(sender="a2")[-1].text == "a2 re: <a1> a1 re: <jakub> all: hello"  # invented lines cut
+    assert len(ircd.messages(sender="a1")) == 1
+    # a1 did not answer, but saw the question and a2's answer
+    assert [(ln.sender, ln.text) for ln in a1.memory.lines(CHAN)][-2:] == [
+        ("jakub", "a2: only you"),
+        ("a2", "a2 re: <jakub> a2: only you"),
+    ]
+
+    await human.privmsg(CHAN, "no address means everyone answers")
+    await until(lambda: len(ircd.messages(sender="a1")) == 2 and len(ircd.messages(sender="a2")) == 3)
 
 
 async def test_agent_loop_is_capped_and_human_resets(h, ircd):
@@ -251,3 +260,11 @@ async def test_reply_to_agent_is_addressed_back(h, ircd):
     await human.privmsg(CHAN, "a1: ask a2 something")
     await until(lambda: ircd.messages(sender="a2"))
     assert ircd.messages(sender="a2")[0].text == "a1: It is 4."
+
+
+async def test_greeting_human_back_with_same_words_is_sent(h, ircd):
+    await h.start_agents({"a1": lambda m: "hello guys"})
+    human, _ = await h.connect("jakub")
+    await human.privmsg(CHAN, "hello guys")
+    await until(lambda: ircd.messages(sender="a1"))
+    assert ircd.messages(sender="a1")[0].text == "hello guys"

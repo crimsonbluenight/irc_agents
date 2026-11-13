@@ -1,10 +1,11 @@
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 
 from irc_agents.agent import render_prompt
 from irc_agents.config import ConfigError, load_config, parse_config
-from irc_agents.memory import Line, Memory
+from irc_agents.memory import HISTORY_HEADER, LIVE_HEADER, Line, Memory
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -83,4 +84,21 @@ def test_memory_to_messages():
         ("user", "<jakub> q1\n* a2 hm"),
         ("assistant", "ans"),
         ("user", "<jakub> q2"),
+    ]
+
+
+def test_memory_marks_replayed_history():
+    m = Memory(max_lines=10)
+    t = datetime(2026, 11, 13, 0, 9, tzinfo=timezone.utc)
+    m.add("#c", Line("jakub", "HI", history=True, time=t))
+    m.add("#c", Line("agent1_qwen", "I'm agent1_qwen", history=True, time=t))
+    m.add("#c", Line("jakub", "hello guys"))
+    user = m.to_messages("#c", "SYS")[1].content.splitlines()
+    stamp = t.astimezone().strftime("%Y-%m-%d %H:%M")
+    assert user == [
+        HISTORY_HEADER,
+        f"[{stamp}] <jakub> HI",
+        f"[{stamp}] <agent1_qwen> I'm agent1_qwen",
+        LIVE_HEADER,
+        "<jakub> hello guys",
     ]

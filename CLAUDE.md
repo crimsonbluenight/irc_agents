@@ -34,7 +34,7 @@ The IRC server is managed with `../irc_server/scripts/ircctl.sh start|stop|logs 
 - **Loop prevention is mainly code, not prompt** (`policy.py`):
   - The turn budget counts agent *turns* since the last human line; consecutive lines of one speaker within
     `TURN_GAP` are one turn.
-  - Agents react to agents only on an explicit leading `nick:`.
+  - Who answers a human line: with a leading `nick:` only those agents, otherwise every agent (`reply_to_unaddressed_human`, default on). Agents react to agents only on an explicit leading `nick:`.
   - Replies to agents are auto-prefixed with the target nick.
   - The dedupe filter covers own lines and parroting of others' lines.
   - Replies are cut where the model writes lines for known speakers.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
+from datetime import datetime
 
 from .backends.base import ChatMessage
 
@@ -14,9 +15,21 @@ class Line:
     text: str
     own: bool = False
     action: bool = False
+    history: bool = False  # replayed by the server on join (said before this agent was present)
+    time: datetime | None = None
 
     def render(self) -> str:
-        return f"* {self.sender} {self.text}" if self.action else f"<{self.sender}> {self.text}"
+        body = f"* {self.sender} {self.text}" if self.action else f"<{self.sender}> {self.text}"
+        if self.history and self.time:
+            return f"[{self.time.astimezone():%Y-%m-%d %H:%M}] {body}"
+        return body
+
+
+HISTORY_HEADER = (
+    "[Channel history from BEFORE you joined, for context only. It is not addressed to you now, and nicks of agents "
+    "may have changed since then (an old name is not you).]"
+)
+LIVE_HEADER = "[End of old history. Live conversation since you joined:]"
 
 
 class Memory:
@@ -38,7 +51,11 @@ class Memory:
         last user turn (keeps small models from continuing the log as other speakers)."""
         messages = [ChatMessage("system", system_prompt)]
         pending: list[str] = []
+        in_history = False
         for line in self.lines(key):
+            if line.history != in_history:
+                pending.append(HISTORY_HEADER if line.history else LIVE_HEADER)
+                in_history = line.history
             if line.own:
                 if pending:
                     messages.append(ChatMessage("user", "\n".join(pending)))

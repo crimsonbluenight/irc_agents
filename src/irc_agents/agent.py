@@ -114,7 +114,7 @@ class Agent:
         if ev.is_history:
             self.policy.known_speakers.add(ev.sender.lower())
             if self.config.policy.use_backlog_as_context:
-                self.memory.add(self.channel, line)
+                self.memory.add(self.channel, Line(ev.sender, ev.text, action=ev.is_action, history=True, time=ev.time))
             return
         self.memory.add(self.channel, line)
         self.policy.observe_channel(ev.sender)
@@ -183,7 +183,12 @@ class Agent:
             if human_triggered:
                 await self._send(target, f"[error: {exc}]", is_pm, record=False)
             return
-        recent_others = [ln.text for ln in self.memory.lines(key) if not ln.own]
+        # Parroting check only against other agents' live lines (greeting a human back with the same words is fine).
+        recent_others = [
+            ln.text
+            for ln in self.memory.lines(key)
+            if not ln.own and not ln.history and not self.policy.is_human(ln.sender)
+        ]
         text = self.policy.clean_reply(raw, recent_others)
         if text is None:
             self.log.info("staying silent (PASS/empty/duplicate): %r", raw[:120])

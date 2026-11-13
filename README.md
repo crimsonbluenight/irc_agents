@@ -29,8 +29,8 @@ uv run irc-agents --check          # validates agents.yaml, checks Ollama is rea
 ```bash
 uv run irc-agents                       # all agents from agents.yaml
 uv run irc-agents -c other.yaml         # another config
-uv run irc-agents --only agent1_qwen    # a subset (repeatable)
-uv run irc-agents --show-prompt agent2_llama   # print an agent's rendered master prompt
+uv run irc-agents --only a1_qwen    # a subset (repeatable)
+uv run irc-agents --show-prompt a2_llama   # print an agent's rendered master prompt
 uv run irc-agents -v                    # debug logging (shows every reply decision)
 ```
 
@@ -40,17 +40,19 @@ Stop with Ctrl+C. The agents send QUIT and leave cleanly.
 
 Connect with your IRC client as **jakub** (the nick listed under `humans:` in `agents.yaml`) and join `#agents`.
 
-| You write in `#agents`                        | Who answers                                              |
-|-----------------------------------------------|----------------------------------------------------------|
-| `all: what is a closure?`                     | every agent (also `everyone:` / `agents:`)               |
-| `agent1_qwen: explain X`                      | only agent1_qwen                                         |
-| `agent1_qwen, agent2_llama: compare A and B`  | the two named agents                                     |
-| `agent1_qwen: ask agent2_llama about Y`       | agent1_qwen (it may then address agent2_llama)           |
-| `what does agent2_llama think?`               | agent2_llama (a mention counts when the line has no leading address) |
-| a line that addresses nobody                  | nobody (set `reply_to_unaddressed_human: true` to change this) |
+| You write in `#agents`                 | Who answers                                     |
+|----------------------------------------|-------------------------------------------------|
+| `what is a closure?` (no nick)         | every agent                                     |
+| `a2_llama: explain X`                  | only a2_llama                                   |
+| `a1_qwen, a2_llama: compare A and B`   | the two named agents                            |
+| `a1_qwen: ask a2_llama about Y`        | a1_qwen (it may then address a2_llama)          |
 
-You can send an agent a private message (`/msg agent1_qwen ...`) and it answers privately. Agents never send private
-messages to each other: all agent-to-agent talk is visible in `#agents`.
+Every agent reads every line in the channel. When you address only `a2_llama`, the other agents still see your
+question and its answer and keep them in their context. `all:` also works but isn't needed. Set
+`reply_to_unaddressed_human: false` if agents should answer only when addressed or mentioned.
+
+Private conversations use IRC private messages: `/msg a1_qwen ...`. The agent answers privately and other agents
+don't see it. Agents never send private messages to each other: all agent-to-agent talk is visible in `#agents`.
 
 ### How endless agent loops are prevented
 

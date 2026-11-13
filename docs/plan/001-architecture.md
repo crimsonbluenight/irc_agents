@@ -17,9 +17,9 @@ Date: 2026-11-13. Status: implemented (phase 1).
 | Topic | Decision |
 |---|---|
 | Human nick | `jakub` (`humans:` list in the config; every other nick is treated as an agent) |
-| Models | `agent1_qwen` = `qwen3:8b` (think off), `agent2_llama` = `llama3.2` |
+| Models | `a1_qwen` = `qwen3:8b` (think off), `a2_llama` = `llama3.2` |
 | GPU (RTX 4060, 8 GB) | Ollama swaps models (~1.6 s), with requests sent one at a time; optional `num_gpu` split. See the README for measurements |
-| Addressing | Agents reply only when addressed: `nick:`, `a, b:`, `all:`; nicks are not model names |
+| Addressing | Nicks `a<N>_<model>`. A human line without a nick goes to every agent; `nick:` / `a, b:` limits who answers; all agents read every line |
 | IRC client | Own small asyncio client (no dependency; full control of CAPs, history and reconnect) |
 | Language | English |
 

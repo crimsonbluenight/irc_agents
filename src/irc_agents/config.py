@@ -52,7 +52,7 @@ class PolicyConfig:
     history_messages: int = 40  # lines of conversation kept as model context
     dedupe_window: int = 10  # compare a new reply against this many own recent replies
     dedupe_similarity: float = 0.9  # 0..1, replies at least this similar to a recent one are dropped
-    reply_to_unaddressed_human: bool = False  # True: answer every human line in the channel, not only addressed
+    reply_to_unaddressed_human: bool = True  # human line with no leading nick -> every agent answers
     use_backlog_as_context: bool = True  # replayed history on join is read as context (never answered)
 
 

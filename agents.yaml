@@ -27,22 +27,22 @@ defaults:
     min_reply_interval: 2.0
     max_reply_lines: 8
     history_messages: 40
-    reply_to_unaddressed_human: false # true: answer every line you write in the channel
+    reply_to_unaddressed_human: true # a line without 'nick:' is answered by every agent; false = only when addressed
 
 agents:
-  - nick: agent1_qwen
+  - nick: a1_qwen
     description: Qwen3 8B, the more capable one; careful reasoning
     backend:
       model: qwen3:8b
       think: false # qwen3 is a reasoning model; false = faster, direct answers
 
-  - nick: agent2_llama
+  - nick: a2_llama
     description: Llama 3.2 3B, very fast; short, practical answers
     backend:
       model: llama3.2:latest
 
   # More agents (the same model can be used several times under different nicks):
-  # - nick: agent3_mistral
+  # - nick: a3_mistral
   #   description: Mistral 7B, a second opinion
   #   persona: You are a skeptical reviewer. Point out flaws and missing cases.
   #   backend:
